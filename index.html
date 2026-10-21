@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CryptVid - Gizli Medya Platformu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @keyframes marquee {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+        .animate-marquee {
+            display: inline-block;
+            white-space: nowrap;
+            animation: marquee 8s linear infinite;
+        }
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-100 flex flex-col h-screen max-h-screen overflow-hidden">
+
+    <!-- Üst Bilgi / Duyuru Alanı -->
+    <div id="announcement-banner" class="bg-red-600 text-white py-1 px-4 text-sm font-bold overflow-hidden whitespace-nowrap hidden relative z-50">
+        <div id="announcement-text" class="animate-marquee"></div>
+    </div>
+
+    <!-- Ana Konteyner -->
+    <div id="app" class="flex-1 flex flex-col overflow-hidden relative">
+        <!-- İçerikler Dinamik Olarak Yüklenecek -->
+    </div>
+
+    <script>
+        // Temel Veritabanı ve Başlangıç Verileri
+        const DEFAULT_USERS = [
+            { username: 'sed', pass: '07Alanya', role: 'superadmin', gender: 'Kız', tokens: 99999, bio: 'Sistem Yöneticisiyim.', age: 24, height: '170cm', weight: '55kg', avatar: '' },
+            { username: 'defne_naz', pass: '1234', role: 'creator', gender: 'Kız', tokens: 150, bio: 'Dans etmeyi ve özel videolarımı paylaşmayı seviyorum.', age: 22, height: '168cm', weight: '52kg', avatar: '' },
+            { username: 'selin_oz', pass: '1234', role: 'creator', gender: 'Kız', tokens: 320, bio: 'Moda ve yaşam tarzı içerikleri.', age: 25, height: '172cm', weight: '58kg', avatar: '' },
+            { username: 'melis_kaya', pass: '1234', role: 'creator', gender: 'Kız', tokens: 90, bio: 'Günlük vloglar ve özel anlar.', age: 21, height: '165cm', weight: '50kg', avatar: '' },
+            { username: 'ayse_yilmaz', pass: '1234', role: 'creator', gender: 'Kız', tokens: 210, bio: 'Sanat ve eğlence.', age: 23, height: '170cm', weight: '54kg', avatar: '' },
+            { username: 'zeynep_s', pass: '1234', role: 'creator', gender: 'Kız', tokens: 80, bio: 'Doğa ve seyahat tutkunu.', age: 26, height: '175cm', weight: '60kg', avatar: '' },
+            { username: 'cemre_inal', pass: '1234', role: 'creator', gender: 'Kız', tokens: 440, bio: 'Müzik ve özel albümler.', age: 22, height: '167cm', weight: '51kg', avatar: '' },
+            { username: 'dilara_k', pass: '1234', role: 'creator', gender: 'Kız', tokens: 130, bio: 'Moda ikonu.', age: 24, height: '171cm', weight: '56kg', avatar: '' },
+            { username: 'asli_tan', pass: '1234', role: 'creator', gender: 'Kız', tokens: 190, bio: 'Spor ve sağlıklı yaşam.', age: 25, height: '169cm', weight: '53kg', avatar: '' },
+            { username: 'gamze_g', pass: '1234', role: 'creator', gender: 'Kız', tokens: 310, bio: 'Eğlenceli anlar.', age: 23, height: '166cm', weight: '49kg', avatar: '' },
+            { username: 'irem_su', pass: '1234', role: 'creator', gender: 'Kız', tokens: 75, bio: 'Günlük yaşam.', age: 20, height: '164cm', weight: '48kg', avatar: '' },
+            { username: 'eda_polat', pass: '1234', role: 'creator', gender: 'Kız', tokens: 520, bio: 'Özel galeri paylaşımları.', age: 27, height: '173cm', weight: '59kg', avatar: '' },
+            { username: 'Buse_A', pass: '1234', role: 'creator', gender: 'Kız', tokens: 110, bio: 'Kediler ve kahve.', age: 22, height: '168cm', weight: '52kg', avatar: '' },
+            { username: 'Ceren_Y', pass: '1234', role: 'creator', gender: 'Kız', tokens: 290, bio: 'Sanat ve tasarım.', age: 24, height: '170cm', weight: '55kg', avatar: '' },
+            { username: 'Merve_K', pass: '1234', role: 'creator', gender: 'Kız', tokens: 180, bio: 'Gezgin ruh.', age: 25, height: '172cm', weight: '57kg', avatar: '' },
+            { username: 'Leyla_N', pass: '1234', role: 'creator', gender: 'Kız', tokens: 95, bio: 'Kitaplar ve kahve.', age: 23, height: '165cm', weight: '50kg', avatar: '' },
+            { username: 'Hande_D', pass: '1234', role: 'creator', gender: 'Kız', tokens: 340, bio: 'Moda ve güzellik.', age: 26, height: '174cm', weight: '58kg', avatar: '' },
+            { username: 'Sude_B', pass: '1234', role: 'creator', gender: 'Kız', tokens: 220, bio: 'Dansçı.', age: 21, height: '167cm', weight: '51kg', avatar: '' },
+            { username: 'Tugce_E', pass: '1234', role: 'creator', gender: 'Kız', tokens: 410, bio: 'Yazar ve içerik üreticisi.', age: 28, height: '171cm', weight: '56kg', avatar: '' },
+            { username: 'Yagmur_S', pass: '1234', role: 'creator', gender: 'Kız', tokens: 160, bio: 'Sinema tutkunu.', age: 22, height: '169cm', weight: '53kg', avatar: '' }
+        ];
+
+        let currentUser = JSON.parse(localStorage.getItem('cryptvid_current')) || null;
+        let users = JSON.parse(localStorage.getItem('cryptvid_users')) || DEFAULT_USERS;
+        let posts = JSON.parse(localStorage.getItem('cryptvid_posts')) || [
+            { id: 1, author: 'defne_naz', title: 'Özel Dans Gösterisi', type: 'video', price: 15, src: 'https://www.w3schools.com/html/mov_bbb.mp4', likes: 12 },
+            { id: 2, author: 'selin_oz', title: 'Stüdyo Arkası Fotoğraflar', type: 'photo', price: 10, src: 'https://picsum.photos/id/64/600/400', likes: 25 }
+        ];
+        let messages = JSON.parse(localStorage.getItem('cryptvid_messages')) || {
+            genel: [
+                { user: 'sed', text: 'Herkese merhaba! Platformumuza hoş geldiniz.', time: '01:00' },
+                { user: 'defne_naz', text: 'Selamlar! Harika bir yer olmuş.', time: '01:02' }
+            ],
+            ozel: []
+        };
+        let currentRoom = 'genel';
+
+        function saveData() {
+            localStorage.setItem('cryptvid_users', JSON.stringify(users));
+            localStorage.setItem('cryptvid_posts', JSON.stringify(posts));
+            localStorage.setItem('cryptvid_current', JSON.stringify(currentUser));
+            localStorage.setItem('cryptvid_messages', JSON.stringify(messages));
+        }
+
+        // Ana Ekran Yönlendirici
+        function render() {
+            const app = document.getElementById('app');
+            if (!currentUser) {
+                app.innerHTML = renderAuthScreen();
+            } else {
+                app.innerHTML = renderMainLayout();
+                setupTabs();
+            }
+        }
+
+        // Giriş / Kayıt Ekranı
+        function renderAuthScreen() {
+            return `
+                <div class="flex-1 flex flex-col justify-center items-center p-6 bg-gray-900 overflow-y-auto">
+                    <div class="w-full max-w-md bg-gray-800 p-8 rounded-2xl shadow-2xl border border-gray-700">
+                        <div class="text-center mb-6">
+                            <i class="fa-solid fa-video text-red-500 text-4xl mb-2"></i>
+                            <h1 class="text-2xl font-bold text-white">CryptVid Platformu</h1>
+                            <p class="text-gray-400 text-sm">Gizli Medya ve Jeton Paylaşım Ağı</p>
+                        </div>
+                        <div id="auth-form-container">
+                            <!-- Varsayılan Giriş Formu -->
+                            <form onsubmit="handleLogin(event)" class="space-y-4">
+                                <div>
+                                    <label class="block text-sm text-gray-300 mb-1">Kullanıcı Adı</label>
+                                    <input type="text" id="login-user" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-red-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm text-gray-300 mb-1">Şifre</label>
+                                    <input type="password" id="login-pass" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white focus:outline-none focus:border-red-500">
+                                </div>
+                                <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg transition">Giriş Yap</button>
+                                <p class="text-center text-sm text-gray-400 mt-4">Hesabınız yok mi? <button type="button" onclick="toggleAuthMode(true)" class="text-red-400 font-bold hover:underline">Kayıt Ol</button></p>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleAuthMode(isRegister) {
+            const container = document.getElementById('auth-form-container');
+            if (isRegister) {
+                container.innerHTML = `
+                    <form onsubmit="handleRegister(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-sm text-gray-300 mb-1">Kullanıcı Adı</label>
+                            <input type="text" id="reg-user" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-white">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-300 mb-1">Şifre</label>
+                            <input type="password" id="reg-pass" required class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-white">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-gray-300 mb-1">Cinsiyet</label>
+                            <select id="reg-gender" class="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-white">
+                                <option value="Kız">Kız</option>
+                                <option value="Erkek">Erkek</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg transition">Kayıt Ol (20 Jeton Hediye!)</button>
+                        <p class="text-center text-sm text-gray-400 mt-2">Zaten hesabınız var mı? <button type="button" onclick="render()" class="text-red-400 font-bold hover:underline">Giriş Yap</button></p>
+                    </form>
+                `;
+            } else {
+                render();
+            }
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const u = document.getElementById('login-user').value.trim();
+            const p = document.getElementById('login-pass').value.trim();
+            const found = users.find(x => x.username === u && x.pass === p);
+            if (found) {
+                currentUser = found;
+                saveData();
+                render();
+            } else {
+                alert('Kullanıcı adı veya şifre hatalı!');
+            }
+        }
+
+        function handleRegister(e) {
+            e.preventDefault();
+            const u = document.getElementById('reg-user').value.trim();
+            const p = document.getElementById('reg-pass').value.trim();
+            const g = document.getElementById('reg-gender').value;
+
+            if (users.some(x => x.username === u)) {
+                alert('Bu kullanıcı adı zaten alınmış!');
+                return;
+            }
+
+            const newUser = { username: u, pass: p, role: 'creator', gender: g, tokens: 20, bio: 'Yeni üye.', age: 22, height: '170cm', weight: '55kg', avatar: '' };
+            users.push(newUser);
+            currentUser = newUser;
+            saveData();
+
+            if (g === 'Kız') {
+                showFemaleWelcomeModal();
+            } else {
+                render();
+            }
+        }
+
+        function showFemaleWelcomeModal() {
+            const app = document.getElementById('app');
+            app.innerHTML += `
+                <div class="absolute inset-0 bg-black/80 flex justify-center items-center p-4 z-50">
+                    <div class="bg-gray-800 p-6 rounded-2xl max-w-sm w-full text-center border border-red-500">
+                        <i class="fa-solid fa-coins text-yellow-400 text-4xl mb-3"></i>
+                        <h2 class="text-xl font-bold text-white mb-2">Harika! Aramıza Hoş Geldin</h2>
+                        <p class="text-gray-300 text-sm mb-4">Siz de platformumuzda video ve fotoğraf paylaşarak yüksek kazançlar elde etmek ister misiniz? Hemen içerik yüklemeye başlayın!</p>
+                        <button onclick="render()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-lg">Hemen Başla</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Ana Arayüz Sekmeler
+        function renderMainLayout() {
+            return `
+                <div class="flex-1 flex flex-col overflow-hidden">
+                    <!-- Üst Menü -->
+                    <header class="bg-gray-900 border-b border-gray-800 p-4 flex justify-between items-center">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-video text-red-500 text-xl"></i>
+                            <span class="font-bold text-lg text-white">CryptVid</span>
+                        </div>
+                        <div class="flex items-center space-x-3">
+                            <span class="bg-yellow-500/20 text-yellow-400 text-xs px-2.5 py-1 rounded-full font-bold border border-yellow-500/30">
+                                <i class="fa-solid fa-coins mr-1"></i> ${currentUser.tokens} Jeton
+                            </span>
+                            ${currentUser.role === 'superadmin' ? '<span class="bg-red-500/20 text-red-400 text-xs px-2 py-0.5 rounded font-bold">Admin</span>' : ''}
+                        </div>
+                    </header>
+
+                    <!-- İçerik Alanı -->
+                    <main id="tab-content" class="flex-1 overflow-y-auto p-4 pb-20">
+                        <!-- Akış yüklenecek -->
+                    </main>
+
+                    <!-- Alt Navigasyon -->
+                    <nav class="bg-gray-900 border-t border-gray-800 flex justify-around p-3 absolute bottom-0 left-0 right-0 z-40">
+                        <button onclick="switchTab('feed')" class="flex flex-col items-center text-red-500" id="nav-feed"><i class="fa-solid fa-house text-lg"></i><span class="text-xs mt-1">Ana Sayfa</span></button>
+                        <button onclick="switchTab('chat')" class="flex flex-col items-center text-gray-400" id="nav-chat"><i class="fa-solid fa-comments text-lg"></i><span class="text-xs mt-1">Sohbet</span></button>
+                        <button onclick="switchTab('upload')" class="flex flex-col items-center text-gray-400" id="nav-upload"><i class="fa-solid fa-circle-plus text-lg"></i><span class="text-xs mt-1">Yükle</span></button>
+                        <button onclick="switchTab('wallet')" class="flex flex-col items-center text-gray-400" id="nav-wallet"><i class="fa-solid fa-wallet text-lg"></i><span class="text-xs mt-1">Cüzdan</span></button>
+                        <button onclick="switchTab('profile')" class="flex flex-col items-center text-gray-400" id="nav-profile"><i class="fa-solid fa-user text-lg"></i><span class="text-xs mt-1">Profil</span></button>
+                    </nav>
+                </div>
+            `;
+        }
+
+        let activeTab = 'feed';
+        function switchTab(tab) {
+            activeTab = tab;
+            document.querySelectorAll('nav button').forEach(b => b.classList.replace('text-red-500', 'text-gray-400'));
+            document.getElementById(`nav-${tab}`).classList.replace('text-gray-400', 'text-red-500');
+            renderTabContent();
+        }
+
+        function renderTabContent() {
+            const container = document.getElementById('tab-content');
+            if (activeTab === 'feed') {
+                container.innerHTML = `
+                    <div class="mb-4">
+                        <input type="text" id="search-input" oninput="filterFeed()" placeholder="Yayıncı veya içerik ara..." class="w-full bg-gray-900 border border-gray-800 rounded-lg p-3 text-white text-sm focus:outline-none focus:border-red-500">
+                    </div>
+                    <div id="feed-list" class="space-y-4">
+                        ${posts.map(p => `
+                            <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 shadow">
+                                <div class="flex justify-between items-center mb-3">
+                                    <span class="font-bold text-sm text-gray-200">@${p.author}</span>
+                                    <span class="text-xs bg-gray-800 px-2 py-1 rounded text-gray-400">${p.type}</span>
+                                </div>
+                                <h3 class="font-bold text-white mb-2">${p.title}</h3>
+                                <div class="bg-black rounded-lg overflow-hidden mb-3 flex justify-center items-center relative min-h-[200px]">
+                                    ${p.price > 0 && currentUser.username !== p.author && currentUser.role !== 'superadmin' ? `
+                                        <div class="absolute inset-0 bg-black/90 flex flex-col justify-center items-center p-4 text-center z-10">
+                                            <i class="fa-solid fa-lock text-red-500 text-3xl mb-2"></i>
+                                            <p class="text-sm text-gray-300 mb-3">Bu içeriği görmek için ${p.price} jeton ödemelisiniz.</p>
+                                            <button onclick="unlockPost(${p.id}, ${p.price})" class="bg-yellow-500 hover:bg-yellow-600 text-gray-950 font-bold px-4 py-2 rounded-lg text-sm">Kilidi Aç (${p.price} Jeton)</button>
+                                        </div>
+                                    ` : ''}
+                                    ${p.type === 'video' ? `<video controls class="w-full max-h-64 object-cover" src="${p.src}"></video>` : `<img src="${p.src}" class="w-full max-h-64 object-cover">`}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } else if (activeTab === 'chat') {
+                container.innerHTML = `
+                    <div class="flex flex-col h-full">
+                        <div class="flex space-x-2 mb-3">
+                            <button onclick="switchRoom('genel')" class="px-3 py-1.5 rounded-lg text-xs font-bold ${currentRoom === 'genel' ? 'bg-red-600 text-white' : 'bg-gray-900 text-gray-400'}">Genel Sohbet</button>
+                            <button onclick="switchRoom('ozel')" class="px-3 py-1.5 rounded-lg text-xs font-bold ${currentRoom === 'ozel' ? 'bg-red-600 text-white' : 'bg-gray-900 text-gray-400'}">VIP Sohbet</button>
+                        </div>
+                        <div id="chat-messages" class="flex-1 bg-gray-900 border border-gray-800 rounded-xl p-3 overflow-y-auto space-y-3 mb-3 max-h-[calc(100vh-260px)]">
+                            ${messages[currentRoom].map((m, idx) => `
+                                <div class="bg-gray-800 p-2.5 rounded-lg text-sm relative">
+                                    <div class="flex justify-between items-center text-xs text-gray-400 mb-1">
+                                        <span class="font-bold text-red-400">@${m.user}</span>
+                                        <span>${m.time}</span>
+                                    </div>
+                                    <p class="text-white">${m.text}</p>${currentUser.role === 'superadmin' ? `<button onclick="deleteMessage('${currentRoom}', ${idx})" class="absolute top-2 right-2 text-red-500 text-xs"><i class="fa-solid fa-trash"></i></button>` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="flex space-x-2">
+                            <input type="text" id="chat-input" placeholder="Mesajınızı yazın (/duyuru ...)..." class="flex-1 bg-gray-900 border border-gray-800 rounded-lg p-2.5 text-white text-sm focus:outline-none focus:border-red-500">
+                            <button onclick="sendMessage()" class="bg-red-600 hover:bg-red-700 text-white px-4 rounded-lg font-bold"><i class="fa-solid fa-paper-plane"></i></button>
+                        </div>
+                    </div>
+                `;
+            } else if (activeTab === 'upload') {
+                container.innerHTML = `
+                    <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 max-w-md mx-auto">
+                        <h2 class="text-lg font-bold text-white mb-4"><i class="fa-solid fa-cloud-arrow-up mr-2 text-red-500"></i> İçerik Yükle</h2>
+                        <form onsubmit="handleUpload(event)" class="space-y-4">
+                            <div>
+                                <label class="block text-sm text-gray-300 mb-1">İçerik Başlığı</label>
+                                <input type="text" id="up-title" required class="w-full bg-gray-950 border border-gray-800 rounded-lg p-3 text-white text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-300 mb-1">Tür</label>
+                                <select id="up-type" class="w-full bg-gray-950 border border-gray-800 rounded-lg p-3 text-white text-sm">
+                                    <option value="video">Video</option>
+                                    <option value="photo">Fotoğraf</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-300 mb-1">Jeton Fiyatı (0 = Ücretsiz)</label>
+                                <input type="number" id="up-price" value="0" min="0" class="w-full bg-gray-950 border border-gray-800 rounded-lg p-3 text-white text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-300 mb-1">Medya Dosyası URL</label>
+                                <input type="text" id="up-src" placeholder="https://..." required class="w-full bg-gray-950 border border-gray-800 rounded-lg p-3 text-white text-sm">
+                            </div>
+                            <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-lg transition text-sm">Yayınla</button>
+                        </form>
+                    </div>
+                `;
+            } else if (activeTab === 'wallet') {
+                container.innerHTML = `
+                    <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 max-w-md mx-auto text-center">
+                        <i class="fa-solid fa-wallet text-yellow-400 text-4xl mb-3"></i>
+                        <h2 class="text-lg font-bold text-white mb-1">Cüzdan Bakiyesi</h2>
+                        <p class="text-2xl font-bold text-yellow-400 mb-6">${currentUser.tokens} Jeton</p>
+                        <div class="space-y-3">
+                            <button onclick="addTokens(50)" class="w-full bg-yellow-500 hover:bg-yellow-600 text-gray-950 font-bold py-3 rounded-lg text-sm">+50 Jeton Satın Al</button>
+                            <button onclick="addTokens(200)" class="w-full bg-yellow-500 hover:bg-yellow-600 text-gray-950 font-bold py-3 rounded-lg text-sm">+200 Jeton Satın Al</button>
+                        </div>
+                    </div>
+                `;
+            } else if (activeTab === 'profile') {
+                container.innerHTML = `
+                    <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 max-w-md mx-auto">
+                        <div class="flex items-center space-x-4 mb-4">
+                            <div class="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center text-2xl font-bold text-white">
+                                ${currentUser.username.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                                <h2 class="text-lg font-bold text-white">@${currentUser.username}</h2>
+                                <p class="text-xs text-gray-400">${currentUser.gender} • ${currentUser.bio}</p>
+                            </div>
+                        </div>
+                        ${currentUser.role === 'superadmin' ? `
+                            <div class="bg-red-950/40 border border-red-800 p-4 rounded-xl mb-4">
+                                <h3 class="font-bold text-red-400 text-sm mb-2"><i class="fa-solid fa-shield-halved mr-1"></i> Sed - Süper Admin Paneli</h3>
+                                <button onclick="adminGiveTokens()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded text-xs mb-2">Hesabıma +1000 Jeton Yükle</button>
+                            </div>
+                        ` : ''}
+                        <button onclick="logout()" class="w-full bg-gray-800 hover:bg-gray-700 text-red-400 font-bold py-3 rounded-lg text-sm">Oturumu Kapat</button>
+                    </div>
+                `;
+            }
+        }
+
+        function unlockPost(id, price) {
+            if (currentUser.tokens >= price) {
+                currentUser.tokens -= price;
+                saveData();
+                renderTabContent();
+            } else {
+                alert('Yetersiz jeton! Lütfen cüzdanınızdan jeton yükleyin.');
+            }
+        }
+
+        function addTokens(amount) {
+            currentUser.tokens += amount;
+            saveData();
+            renderTabContent();
+            alert(`Başarıyla ${amount} jeton eklendi!`);
+        }
+
+        function adminGiveTokens() {
+            currentUser.tokens += 1000;
+            saveData();
+            renderTabContent();
+            alert('1000 jeton eklendi!');
+        }
+
+        function handleUpload(e) {
+            e.preventDefault();
+            const title = document.getElementById('up-title').value;
+            const type = document.getElementById('up-type').value;
+            const price = parseInt(document.getElementById('up-price').value) || 0;
+            const src = document.getElementById('up-src').value;
+
+            posts.unshift({ id: Date.now(), author: currentUser.username, title, type, price, src, likes: 0 });
+            saveData();
+            switchTab('feed');
+        }
+
+        function switchRoom(room) {
+            currentRoom = room;
+            renderTabContent();
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            if (text.startsWith('/duyuru') && currentUser.role === 'superadmin') {
+                const announcement = text.replace('/duyuru', '').trim();
+                triggerAnnouncement(announcement);
+                input.value = '';
+                return;
+            }
+
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            messages[currentRoom].push({ user: currentUser.username, text, time });
+            saveData();
+            input.value = '';
+            renderTabContent();
+        }
+
+        function deleteMessage(room, index) {
+            messages[room].splice(index, 1);
+            saveData();
+            renderTabContent();
+        }
+
+        function triggerAnnouncement(text) {
+            const banner = document.getElementById('announcement-banner');
+            const textEl = document.getElementById('announcement-text');
+            textEl.innerText = ` duyuru: ${text}   •   `;
+            banner.classList.remove('hidden');
+            setTimeout(() => {
+                banner.classList.add('hidden');
+            }, 24000); // 3 tur kayma süresi
+        }
+
+        function filterFeed() {
+            const q = document.getElementById('search-input').value.toLowerCase();
+            const items = document.querySelectorAll('#feed-list > div');
+            items.forEach(item => {
+                const text = item.innerText.toLowerCase();
+                item.style.display = text.includes(q) ? 'block' : 'none';
+            });
+        }
+
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('cryptvid_current');
+            render();
+        }
+
+        render();
+    </script>
+</body>
+</html>
